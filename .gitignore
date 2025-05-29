@@ -1,2 +1,7 @@
 notes.md
 .venv
+mlartifacts
+mlruns
+*.parquet
+*.pkl
+*.log

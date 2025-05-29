@@ -7,6 +7,7 @@ from hyperopt import STATUS_OK, Trials, fmin, hp, tpe
 from hyperopt.pyll import scope
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import root_mean_squared_error
+from sklearn.feature_selection import VarianceThreshold
 
 mlflow.set_tracking_uri("http://127.0.0.1:8080")
 mlflow.set_experiment("random-forest-hyperopt")
@@ -33,6 +34,10 @@ def run_optimization(data_path: str, num_trials: int):
     X_train, y_train = load_pickle(os.path.join(data_path, "train.pkl"))
     X_val, y_val = load_pickle(os.path.join(data_path, "val.pkl"))
 
+    # drop any feature with variance < 0.01
+    vt = VarianceThreshold(threshold=0.01)
+    X_train = vt.fit_transform(X_train)
+    X_val   = vt.transform(X_val)
     def objective(params):
         with mlflow.start_run():
             mlflow.log_params(params)

@@ -7,6 +7,7 @@ from mlflow.entities import ViewType
 from mlflow.tracking import MlflowClient
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import root_mean_squared_error
+from sklearn.feature_selection import VarianceThreshold
 
 HPO_EXPERIMENT_NAME = "random-forest-hyperopt"
 EXPERIMENT_NAME = "random-forest-best-models"
@@ -26,7 +27,13 @@ def train_and_log_model(data_path, params):
     X_train, y_train = load_pickle(os.path.join(data_path, "train.pkl"))
     X_val, y_val = load_pickle(os.path.join(data_path, "val.pkl"))
     X_test, y_test = load_pickle(os.path.join(data_path, "test.pkl"))
+    # drop any feature with variance < 0.01
+    vt_training = VarianceThreshold(threshold=0.01)
+    X_train = vt_training.fit_transform(X_train)
+    X_val   = vt_training.transform(X_val)
 
+    vt_testing = VarianceThreshold(threshold=0.01)
+    X_test = vt_training.fit_transform(X_test)
     with mlflow.start_run():
         new_params = {}
         for param in RF_PARAMS:
