@@ -30,9 +30,8 @@ def transform_custom(df: DataFrame, *args, **kwargs):
     X_val = dv.transform(val_dicts)
     y_train = df_train[target].values
     y_val = df_val[target].values
-    url = "http://mlflow-ui:5001"
-    mlflow.set_tracking_uri(url)
-
+    mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI"))
+    print(os.getenv("MLFLOW_TRACKING_URI"))
     EXPERIMENT_NAME = kwargs['EXPERIMENT_NAME']
     mlflow.set_experiment(EXPERIMENT_NAME)
 

@@ -22,19 +22,38 @@ blocks:
   configuration:
     file_source:
       path: mlops_03/transformers/nyc_taxi_regression.py
-  downstream_blocks: []
+  downstream_blocks:
+  - nyc_model_train
   executor_config: null
   executor_type: local_python
   has_callback: false
   language: python
   name: nyc_taxi_regression
   retry_config: null
-  status: updated
+  status: executed
   timeout: null
   type: transformer
   upstream_blocks:
   - nyc_taxi
   uuid: nyc_taxi_regression
+- all_upstream_blocks_executed: true
+  color: null
+  configuration:
+    file_source:
+      path: mlops_03/custom/nyc_model_train.py
+  downstream_blocks: []
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: nyc_model_train
+  retry_config: null
+  status: updated
+  timeout: null
+  type: custom
+  upstream_blocks:
+  - nyc_taxi_regression
+  uuid: nyc_model_train
 cache_block_output_in_memory: false
 callbacks: []
 concurrency_config: {}
@@ -57,5 +76,7 @@ spark_config: {}
 tags: []
 type: python
 uuid: linear_regression
+variables:
+  EXPERIMENT_NAME: LinearRegressionMage
 variables_dir: /home/src/mage_data/mlops_03
 widgets: []
