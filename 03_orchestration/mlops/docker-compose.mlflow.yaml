@@ -1,0 +1,111 @@
+version: "3.8"
+
+services:
+  magic-platform:
+    env_file:
+      - .env.dev
+      # You can add MLflow vars here, or define them in .env.dev
+    build:
+      context: .
+    command: /app/run_app.sh mage start $PROJECT_NAME
+    ports:
+      - "6789:6789"
+    volumes:
+      - .:/$MAGE_CODE_PATH
+      - ~/.mage_data:/$MAGE_CODE_PATH/mage_data
+      - ~/.aws:/root/.aws
+      - ~/.ssh:/root/.ssh:ro
+      - ~/.gitconfig:/root/.gitconfig:ro
+    environment:
+      # point MLflow client at your MLflow server
+      MLFLOW_TRACKING_URI: http://mlflow-ui:5001
+      # if you want to pass bucket name
+      MLRUNS_BUCKET_NAME: ${MLRUNS_BUCKET_NAME}
+    restart: on-failure:5
+    networks:
+      - app-network
+    depends_on:
+      - magic-database
+      - mlflow-ui
+    stdin_open: true
+    tty: true
+
+  magic-database:
+    image: pgvector/pgvector:0.6.0-pg16
+    env_file:
+      - .env.dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - ~/.postgres/data:/var/lib/postgresql/data
+      - ./scripts/database:/docker-entrypoint-initdb.d
+    restart: always
+    networks:
+      - app-network
+
+  # --- MLflow backend DB ---
+  mlflow-db:
+    image: postgres:13
+    env_file:
+      - .env.dev
+    volumes:
+      - mlflow_db:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  # --- MinIO as S3 ---
+  minio:
+    restart: always
+    image: minio/minio:RELEASE.2021-06-14T01-29-23Z
+    container_name: mlflow_minio_container
+    working_dir: /data
+    expose:
+      - "9001"
+    env_file:
+      - .env.dev
+    command: minio server /data --address ":9001"
+    ports:
+      - "9003:9003"   # S3 API
+      - "9001:9001"   # MinIO web console
+    volumes:
+      - mlflow_s3:/data
+    networks:
+      - app-network
+
+  # --- MLflow Tracking UI/API ---
+  mlflow-ui:
+    restart: always
+    build:
+      context: .
+      dockerfile: mlflow_docker/Dockerfile
+    image: mlflow_ui_image
+    container_name: mlflow_ui_container_mage
+    depends_on:
+      - mlflow-db
+      - minio
+    ports:
+      - "5001:5001"
+    environment:
+      # Postgres backend for metadata
+      MLFLOW_TRACKING_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@mlflow-db:5432/${POSTGRES_DB}
+      # Where to store artifacts
+      MLFLOW_ARTIFACT_ROOT: s3://${MLRUNS_BUCKET_NAME}/
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      AWS_DEFAULT_REGION: ${AWS_REGION}
+      MLFLOW_S3_ENDPOINT_URL: http://minio:9003
+    command: >
+      mlflow server
+      --backend-store-uri ${MLFLOW_TRACKING_URI}
+      --default-artifact-root ${MLFLOW_ARTIFACT_ROOT}
+      --host 0.0.0.0 --port 5001
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mlflow_db:
+  mlflow_s3:

@@ -1,0 +1,42 @@
+if 'custom' not in globals():
+    from mage_ai.data_preparation.decorators import custom
+if 'test' not in globals():
+    from mage_ai.data_preparation.decorators import test
+
+from mage_ai.data_preparation.shared.secrets import get_secret_value
+from typing import List, Tuple
+from pandas import DataFrame, Series
+import mlflow
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import root_mean_squared_error
+import os
+
+
+@custom
+def transform_custom(data: Tuple[DataFrame, DataFrame, DataFrame, DataFrame], *args, **kwargs):
+    X_train, y_train, X_val, y_val = data
+    # mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI"))
+    # EXPERIMENT_NAME = kwargs['EXPERIMENT_NAME']
+    # mlflow.set_experiment(EXPERIMENT_NAME)
+
+
+    # mlflow.sklearn.autolog()
+    # with mlflow.start_run():
+    lr = LinearRegression()
+    lr.fit(X_train, y_train)
+
+    y_pred = lr.predict(X_val)
+
+        loss = root_mean_squared_error(y_val, y_pred)
+
+    print(f"rmse: {loss}")
+    print(f"Model intercept: {lr.intercept_}")
+    return dv, lr
+
+
+@test
+def test_output(output, *args) -> None:
+    """
+    Template code for testing the output of the block.
+    """
+    assert output is not None, 'The output is undefined'

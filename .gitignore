@@ -5,3 +5,5 @@ mlruns
 *.parquet
 *.pkl
 *.log
+*.env.dev
+*.env

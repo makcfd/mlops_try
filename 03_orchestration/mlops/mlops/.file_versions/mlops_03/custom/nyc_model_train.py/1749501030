@@ -1,0 +1,28 @@
+if 'custom' not in globals():
+    from mage_ai.data_preparation.decorators import custom
+if 'test' not in globals():
+    from mage_ai.data_preparation.decorators import test
+
+
+@custom
+def transform_custom(*args, **kwargs):
+    mlflow.sklearn.autolog()
+    with mlflow.start_run():
+        lr = LinearRegression()
+        lr.fit(X_train, y_train)
+
+        y_pred = lr.predict(X_val)
+
+        loss = root_mean_squared_error(y_val, y_pred)
+
+    print(f"rmse: {loss}")
+    print(f"Model intercept: {lr.intercept_}")
+    return dv, lr
+
+
+@test
+def test_output(output, *args) -> None:
+    """
+    Template code for testing the output of the block.
+    """
+    assert output is not None, 'The output is undefined'
